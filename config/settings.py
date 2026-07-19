@@ -15,6 +15,7 @@ This file contains the main configuration for your Django application.
 """
 
 from pathlib import Path
+from decouple import config   # pip install python-decouple
 
 # The main project folder (used to build file paths)
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,7 +26,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # =========================
 
 # Secret key used by Django for security (keep it private in production)
-SECRET_KEY = 'django-insecure-vjg##f&sgdhg6z6x%4kv3q#gk+w&q6)=ofwsl+dtei7a#yi%%g'
+SECRET_KEY = config('SECRET_KEY')
 
 # Shows detailed error pages when True (only for development)
 DEBUG = True
@@ -48,6 +49,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',   # Static files (CSS, JS, Images)
 
     'blog',                         # Our custom blog app
+    'rest_framework',  # pip install djangorestframework
+    'drf_yasg',  # pip install drf-yasg  (Swagger docs)
 ]
 
 
@@ -103,16 +106,42 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 
 # =========================
-# Database
+# Database — two ways
 # =========================
 
-# Database configuration (SQLite by default)
+# ---- DEFAULT WAY (SQLite — zero setup, good for learning) ----
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
+# ---- CUSTOMIZED WAY (PostgreSQL via .env — production practice) ----
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',   # Database type
-        'NAME': BASE_DIR / 'db.sqlite3',          # Database file location
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': config('DATABASE_NAME'),
+        'USER': config('DATABASE_USER'),
+        'PASSWORD': config('DATABASE_PASSWORD'),
+        'HOST': config('DATABASE_HOST'),
+        'PORT': config('DATABASE_PORT'),
+        'OPTIONS': {
+            'options': f"-c search_path={config('DATABASE_SCHEMA', default='public')}"
+        },
     }
 }
+
+# =========================
+# Custom User Model
+# =========================
+
+# ---- DEFAULT WAY ----
+# Leave this line out entirely and Django uses auth.User automatically.
+
+# ---- CUSTOMIZED WAY ----
+# Tell Django to use our own user model instead of the built-in one.
+# AUTH_USER_MODEL = 'blog.CustomUser'
 
 
 # =========================
