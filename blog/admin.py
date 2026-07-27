@@ -1,5 +1,4 @@
 from django.contrib import admin
-# from django.contrib.auth.admin import UserAdmin   # only for auth-based users
 
 from .models import User, Category, Post, Comment
 
@@ -19,12 +18,6 @@ class UserAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'phone_number', 'is_active', 'created_at')
     search_fields = ('name', 'phone_number')
     list_filter = ('is_active', 'created_at')
-
-
-# ---- OLD custom-auth-user admin (no longer used) ----
-# @admin.register(CustomUser)
-# class CustomUserAdmin(UserAdmin):
-#     pass
 
 
 admin.site.register(Category)
