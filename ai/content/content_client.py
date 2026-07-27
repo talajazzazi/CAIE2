@@ -1,14 +1,16 @@
 # =========================================================
 # THE CLIENT LAYER  —  the boundary to the outside world
 # =========================================================
-# This is the ONLY file that talks to the model. Switching the
-# provider (stub -> OpenAI) changes THIS file and nothing else —
-# the service pipeline and the view don't move at all.
+# This is the ONLY file that talks to the model. Switching the provider
+# (e.g. OpenAI -> another vendor) changes THIS file and nothing else — the
+# service pipeline and the views never move.
 #
-# The API key lives in your .env, NEVER in the code:
-#   OPENAI_API_KEY=sk-...
+# Secure key management:
+# The API key is a CREDENTIAL. It lives in .env, is loaded ONCE in
+# settings.py, and is READ from there here. We never touch the environment
+# directly and we NEVER hardcode the key.
 
-from decouple import config
+from django.conf import settings          # read the key/model from ONE place
 from openai import OpenAI
 
 
@@ -16,14 +18,28 @@ class ContentClient:
     """Talks to the OpenAI API. The single point of contact with the model."""
 
     def __init__(self):
-        # Read the key from .env via python-decouple (same as settings.py).
-        self.client = OpenAI(api_key=config("OPENAI_API_KEY"))
+        # ---- BAD WAY — NEVER do this ----
+        # self.client = OpenAI(api_key="sk-1234567890abcdef")  # hardcoded -> leaks
+        #
+        # ---- GOOD WAY — settings.py loads it from .env, we just read settings ----
+        self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
-    # ---- (real OpenAI call) ----
-    def generate(self, prompt):
+    def generate(self, prompt, system=None):
+        """Send a prompt to the model and return its reply as PLAIN TEXT.
+
+        A SYSTEM message (when provided) sets firm boundaries the user text
+        cannot override. It stays OPTIONAL so the client remains generic and
+        reusable across services. Returning a plain string keeps the service
+        layer independent of the provider's response objects — swap the vendor
+        and callers don't change.
+        """
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+
         response = self.client.chat.completions.create(
-            model="gpt-4o-mini",                     # cheap + good for summaries
-            messages=[{"role": "user", "content": prompt}],
+            model=settings.OPENAI_MODEL,   # a small, cheap chat model is fine here
+            messages=messages,
         )
-        # Return PLAIN TEXT so the service layer stays unchanged.
         return response.choices[0].message.content
